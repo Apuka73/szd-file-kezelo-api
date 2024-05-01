@@ -1,0 +1,16 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ['build',
+           '-t', 'europe-west3-docker.pkg.dev/$PROJECT_ID/docker/api-skeleton:$BRANCH_NAME-$COMMIT_SHA',
+           '.']
+    id: Build
+
+  - name: gcr.io/cloud-builders/docker
+    args: ['push', 'europe-west3-docker.pkg.dev/$PROJECT_ID/docker/api-skeleton:$BRANCH_NAME-$COMMIT_SHA']
+    id: Push
+
+  - name: "gcr.io/$PROJECT_ID/kubectl"
+    args:
+      - deploy
+      - --branch=$BRANCH_NAME
+      - --image=europe-west3-docker.pkg.dev/$PROJECT_ID/docker/api-skeleton:$BRANCH_NAME-$COMMIT_SHA
