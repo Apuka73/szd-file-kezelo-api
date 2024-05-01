@@ -8,7 +8,7 @@ RUN pecl channel-update pecl.php.net && \
     pecl install phalcon && \
     docker-php-ext-enable phalcon
 
-RUN apt update && apt install -y libmemcached-dev libjpeg-dev libpng-dev zlib1g-dev memcached libzip-dev \
+RUN apt update && apt install -y libmemcached-dev libjpeg-dev libpng-dev zlib1g-dev memcached libzip-dev dos2unix \
         && printf "\n" | pecl install memcached \
         && docker-php-ext-enable memcached
 
@@ -34,6 +34,7 @@ RUN mv "/php.ini" "$PHP_INI_DIR/php.ini"
 
 COPY apache-vhost.conf /etc/apache2/sites-enabled/000-default.conf
 COPY entrypoint.sh /entrypoint.sh
+RUN dos2unix /entrypoint.sh && chmod +x /entrypoint.sh
 
 RUN chmod 777 /entrypoint.sh
 RUN a2enmod rewrite &&  service apache2 restart

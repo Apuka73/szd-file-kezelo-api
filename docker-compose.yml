@@ -29,10 +29,13 @@ services:
     volumes:
       - db-volume:/var/lib/mysql
       - ./src/mysql-migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "33060:3306"
     healthcheck:
       test: mysql --user=root --password=$$MYSQL_ROOT_PASSWORD --execute "SHOW DATABASES;"
       retries: 20
       interval: 2s
+
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
