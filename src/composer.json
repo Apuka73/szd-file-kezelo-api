@@ -1,5 +1,12 @@
 {
-    "require": {
-        "robmorgan/phinx": "^0.16.0"
-    }
+  "require": {
+    "ext-json": "*",
+    "robmorgan/phinx": "^0.16.0",
+    "ankitpokhrel/tus-php": "^2.4",
+    "league/flysystem": "^3.0",
+    "league/flysystem-aws-s3-v3": "^3.0"
+  },
+  "require-dev": {
+    "kint-php/kint": "^5.1"
+  }
 }

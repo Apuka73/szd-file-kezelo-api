@@ -1,2 +1,5 @@
 .idea
 src/vendor
+src/downloads
+.env
+html/upload

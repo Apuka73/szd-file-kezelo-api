@@ -9,18 +9,20 @@ class Router extends \Phalcon\Mvc\Router
         parent::__construct(false);
 
         $this->notFound([
-            'controller' => 'Controller\\Index',
-            'action' => 'notFound']
+                'controller' => 'Controller\\Index',
+                'action' => 'notFound']
         );
 
-        $this->add('/probe/liveness', 'Controller\\Probe::liveness');
-
+//        $this->add('/probe/liveness', 'Controller\\Probe::liveness');
         $this->add('/', 'Controller\\Index::index');
+//        $this->add('/sample/content/list', 'Controller\\Sample\\Content::list');
+//        $this->add('/sample/content/get', 'Controller\\Sample\\Content::get');
+//        $this->add('/sample/content/save', 'Controller\\Sample\\Content::save');
+//        $this->add('/sample/content/delete', 'Controller\\Sample\\Content::delete');
 
+        $this->add('/files', 'Controller\\Api::upload');
+        $this->add('/blob/{file:[a-zA-Z0-9\/\.]+}', 'Controller\\Api::getFile');
+        $this->add('/file', 'Controller\\Api::getFileInfo');
 
-        $this->add('/sample/content/list', 'Controller\\Sample\\Content::list');
-        $this->add('/sample/content/get', 'Controller\\Sample\\Content::get');
-        $this->add('/sample/content/save', 'Controller\\Sample\\Content::save');
-        $this->add('/sample/content/delete', 'Controller\\Sample\\Content::delete');
     }
 }

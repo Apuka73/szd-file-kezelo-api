@@ -78,3 +78,39 @@ Mindig csekkoljuk a db-t, hogy tenyleg kiszedte-e a modositasokat mielott ujra f
 app/Controller/Sample/ContentController
 app/Model/Sample/Content
 ```
+
+Dokumentacio:
+
+```
+Fajl kezelo api
+
+Api skeleton: https://github.com/szabolcsidaniel/skeleton-api
+
+
+Az api lenyege, hogy nagy meretu fajlokat kezeljunk stabilan.
+
+A feltoltest TUS kezeli: https://github.com/ankitpokhrel/tus-php
+
+Az adattarolast S3 storage. Pl backblaze
+
+Mysql-ben rogzitjuk a fajlok:
+Eredeti nevet
+feltoltesi idejet
+S3 elresi utjat
+
+Az S3-ba attoltes elott mindig kapjon a fajl egy uj hash-elt eleresi utat 2 szintu mappasitassal pl:
+aa/bb/ccasdasdadasddasdas.jpg
+d3/dd/35gdfgdf4fdsdsfdsfsdfa.pdf
+Ez az utvonal, kiterjesztessel egyutt keruljon bele a mysql rekordba is.
+
+
+Szoval:
+Kell egy tus vegpont ahova a kliens elkezdi feltolteni a fajlt, fajlokat
+Feltoltes utan, terjen vissza a fajlok mysql rekordok id-javal.
+Feltoltes utan, S3-ra kapcsolodas es feltoltes
+Egyeb Api vegpontok
+/blob/aa/bb/adasdadaddas.jpg - konkret fajl letoltese a tarot utvonal alapjan
+/file?ids=12,34,344,343 - tobb fajlok lekerdezese id alapjan
+Mysql rekord adatai a valasz json-ben + egy url mezo amivel letoltheto a fajl elerese absolute utvonala van, host-al egyutt
+
+

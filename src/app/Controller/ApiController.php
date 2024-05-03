@@ -2,7 +2,17 @@
 
 namespace Controller;
 
+use Exception\BadRequest;
+use League\Flysystem\Filesystem;
+use Middleware\CorsMiddleware;
+use Model\File;
+use Phalcon\Di;
+use Phalcon\Http\Request\FileInterface;
 use Phalcon\Mvc\Controller;
+use Phalcon\Mvc\Dispatcher;
+use Predis\Command\Redis\DISCARD;
+use TusPhp\Tus\Server;
+use Phalcon\Encryption\Security\Random;
 
 class ApiController extends Controller
 {
@@ -13,22 +23,150 @@ class ApiController extends Controller
             header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
             header('Access-Control-Allow-Credentials: true');
             header('Access-Control-Max-Age: 86400');
-        }
-        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
-                header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-            }
-
-            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
-                header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
-            }
-
             exit(0);
         }
+//        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+//            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
+//                header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+//                header('Access-Control-Allow-Origin: *');
+//                header('Access-Control-Allow-Headers: Origin, Tus-Resumable, Tus-Version, Location, Upload-Length, Upload-Offset, Upload-Metadata, Tus-Max-Size, Tus-Extension, Tus-Resumable, Upload-Defer-Length, X-HTTP-Method-Override, Content-Type');
+//                header('Access-Control-Expose-Headers: Tus-Resumable, Tus-Version, Location, Upload-Length, Upload-Offset, Upload-Metadata, Tus-Max-Size, Tus-Extension, Content-Type, Stream-Media-ID');
+//            }
+//
+//            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
+//                header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
+//            }
+//
+
+
+//        }
     }
 
     public function afterExecuteRoute()
     {
-        $this->response->setJsonContent($this->dispatcher->getReturnedValue());
+        $headers = $this->response->getHeaders();
+        if (!$headers->has('Content-Type')) {
+            $this->response->setJsonContent($this->dispatcher->getReturnedValue());
+        }
     }
+
+    public function uploadAction()
+    {
+
+        $files = $this->request->getUploadedFiles();
+        $resp = [];
+        foreach ($files as $file) {
+            $file->moveTo('/tmp/' . $file->getName());
+            $resp[] = $this->moveToStorage($file);
+        }
+        return $resp;
+        try {
+
+            $server = new Server('file');
+            $server->setCache(
+                new \TusPhp\Cache\FileStore('/tmp')
+            );
+            $server->event()->addListener('tus-server.upload.created', function (\TusPhp\Events\TusEvent $event) {
+                // Upload esemény logolása vagy kezelése
+                error_log('Feltöltés létrehozva: ' . $event->getFile()->getFilePath());
+            });
+
+            $server->serve();
+        } catch (\Exception $e) {
+            return [
+                'message' => $e->getMessage()
+            ];
+        }
+
+        return [
+            'message' => 'upload ok'
+        ];
+    }
+
+    private function moveToStorage(FileInterface $file): array
+    {
+        $source = sys_get_temp_dir() . '/' . $file->getName();
+        if (!file_exists($source)) {
+            throw new \Exception\File('Uploaded file not found. [' . $file->getName() . ']');
+        }
+        $random = new Random();
+        $helper = new \Phalcon\Support\HelperFactory();
+        $extension = pathinfo($file->getName(), PATHINFO_EXTENSION);
+        do {
+            $storePath = $helper->lower($random->base62(2) . '/' . $random->base62(2) . '/' . $random->base62() . '.' . $extension);
+        } while (File::findFirstByPath($storePath) !== null);
+        /** @var Filesystem $bucket */
+        try {
+//            $bucket = $this->storage->getBucket();
+//            $bucket->write();
+//            $fileStream = fopen($source, 'r');
+//            $bucket->writeStream('/' . $storePath, $fileStream);
+//            if (is_resource($fileStream)) {
+//                fclose($fileStream);
+//            }
+            $bucket = $this->storage->getBucket();
+            $fileContent = file_get_contents($source);
+            $bucket->write('/' . $storePath, $fileContent);
+        } catch (\Exception $e) {
+            throw new \Exception\File('File copy to bucket error. [' . $e->getMessage() . ']');
+        }
+        $file = new File(
+            [
+                'name' => $file->getName(),
+                'path' => $storePath
+            ]
+        );
+        if (!$file->save()) {
+            throw new \Exception\File('File save to db error. [' . $source . ']');
+        }
+
+        return ['id' => $file->getId(), 'url' => $file->getPublicUrl()];
+
+    }
+
+    public function getFileAction($file)
+    {
+        $file = File::findFirstByPath($file);
+        if ($file === null) {
+            throw new BadRequest('File not found. [' . $file . ']');
+        }
+        $bucket = $this->storage->getBucket();
+        $content = $bucket->read($file->getPath());
+        $tempPath = tempnam(sys_get_temp_dir(), 'download');
+        file_put_contents($tempPath, $content);
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $tempPath);
+        finfo_close($finfo);
+        $this->response
+            ->setHeader('Content-Type', $mimeType)
+            ->setFileToSend($tempPath, $file->getName());
+        return $this->response;
+    }
+
+    public function getFileInfoAction()
+    {
+        $ids = $this->request->get('ids', null, '');
+        if (empty($ids)) {
+            throw new BadRequest('Empty ids');
+        }
+        $idsArray = explode(',', $ids);
+        $placeholders = array_fill(0, count($idsArray), '?');
+        $binds = [];
+        foreach ($idsArray as $index => $id) {
+            $placeholders[$index] = ":id{$index}:";
+            $binds["id{$index}"] = $id;
+        }
+        $files = File::find([
+            'conditions' => "id IN (" . implode(',', $placeholders) . ")",
+            'bind' => $binds
+        ]);
+
+        $resp = [];
+        foreach ($files as $file) {
+            $resp[] = $file->toResponseArray();
+        }
+
+        return $resp;
+    }
+
 }

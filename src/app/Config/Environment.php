@@ -4,6 +4,7 @@ namespace Config;
 
 use Config\Environment\MySql;
 use Config\Environment\SendCloud;
+use Config\Environment\FileStorage;
 
 class Environment
 {
@@ -41,8 +42,18 @@ class Environment
         return self::$instances[$class];
     }
 
-    public function getMySql():MySql
+    public function getMySql(): MySql
     {
         return self::getInstance(MySql::class);
+    }
+
+    public function getFileStorage(): FileStorage
+    {
+        return self::getInstance(FileStorage::class);
+    }
+
+    public function getBasePath()
+    {
+        return __DIR__ . '/../..';
     }
 }
