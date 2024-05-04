@@ -19,12 +19,12 @@ class ApiController extends Controller
     public function beforeExecuteRoute()
     {
 
-        if (isset($_SERVER['HTTP_ORIGIN'])) {
-            header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-            header('Access-Control-Allow-Credentials: true');
-            header('Access-Control-Max-Age: 86400');
-            exit(0);
-        }
+//        if (isset($_SERVER['HTTP_ORIGIN'])) {
+//            header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+//            header('Access-Control-Allow-Credentials: true');
+//            header('Access-Control-Max-Age: 86400');
+//            exit(0);
+//        }
 //        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 //            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
 //                header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
@@ -53,13 +53,13 @@ class ApiController extends Controller
     public function uploadAction()
     {
 
-        $files = $this->request->getUploadedFiles();
-        $resp = [];
-        foreach ($files as $file) {
-            $file->moveTo('/tmp/' . $file->getName());
-            $resp[] = $this->moveToStorage($file);
-        }
-        return $resp;
+//        $files = $this->request->getUploadedFiles();
+//        $resp = [];
+//        foreach ($files as $file) {
+//            $file->moveTo('/tmp/' . $file->getName());
+//            $resp[] = $this->moveToStorage($file);
+//        }
+//        return $resp;
         try {
 
             $server = new Server('file');
@@ -167,6 +167,24 @@ class ApiController extends Controller
         }
 
         return $resp;
+    }
+
+    public function preflightAction()
+    {
+        $content_type = 'application/json';
+        $status = 200;
+        $description = 'OK';
+        $response = $this->response;
+
+        $status_header = 'HTTP/1.1 ' . $status . ' ' . $description;
+        $response->setRawHeader($status_header);
+        $response->setStatusCode($status, $description);
+        $response->setContentType($content_type, 'UTF-8');
+        $response->setHeader('Access-Control-Allow-Origin', '*');
+        $response->setHeader('Access-Control-Allow-Headers', 'X-Requested-With');
+        $response->setHeader('Access-Control-Allow-Headers', 'Authorization');
+        $response->setHeader('Content-type', $content_type);
+        $response->sendHeaders();
     }
 
 }

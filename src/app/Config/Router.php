@@ -2,6 +2,8 @@
 
 namespace Config;
 
+use Phalcon\Di\Di;
+
 class Router extends \Phalcon\Mvc\Router
 {
     public function __construct(bool $defaultRoutes = true)
@@ -23,6 +25,9 @@ class Router extends \Phalcon\Mvc\Router
         $this->add('/files', 'Controller\\Api::upload');
         $this->add('/blob/{file:[a-zA-Z0-9\/\.]+}', 'Controller\\Api::getFile');
         $this->add('/file', 'Controller\\Api::getFileInfo');
+        $this->add('/preflight', 'Controller\\Api::preflight');
+
+
 
     }
 }

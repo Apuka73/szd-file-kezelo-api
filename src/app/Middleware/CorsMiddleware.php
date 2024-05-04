@@ -15,18 +15,12 @@ class CorsMiddleware extends Injectable
         // Beállítja a szükséges CORS fejléceket
         $response->setHeader('Access-Control-Allow-Origin', '*');
         $response->setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+        $response->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
 
-
-        if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
-            $response->setHeader('Access-Control-Allow-Headers', 'Origin, Tus-Resumable, Tus-Version, Location, Upload-Length, Upload-Offset, Upload-Metadata, Tus-Max-Size, Tus-Extension, Tus-Resumable, Upload-Defer-Length, X-HTTP-Method-Override, Content-Type');
-            $response->setHeader('Access-Control-Expose-Headers', 'Tus-Resumable, Tus-Version, Location, Upload-Length, Upload-Offset, Upload-Metadata, Tus-Max-Size, Tus-Extension, Content-Type, Stream-Media-ID');
-        }
-        // Ha az HTTP metódus OPTIONS, ne folytassa a kérés feldolgozását
+        // Ha az HTTP metódus OPTIONS (pre-flight kérés), ne folytassa a kérés feldolgozását
         if ($this->request->getMethod() == 'OPTIONS') {
             $response->setStatusCode(200, 'OK');
-            $response->setHeader('Access-Control-Allow-Origin', '*');
-            $response->setHeader('Access-Control-Allow-Headers', 'X-Requested-With');
-            $response->setHeader('Access-Control-Allow-Headers', 'Authorization');
+            return false;
         }
 
         return true;

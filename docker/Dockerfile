@@ -19,7 +19,6 @@ RUN docker-php-ext-install gd pdo_mysql zip
 RUN echo '' | pecl install apcu
 RUN docker-php-ext-enable apcu
 
-
 WORKDIR /build
 RUN curl -s https://getcomposer.org/installer | php
 RUN ln -s /build/composer.phar /usr/local/bin/composer
@@ -37,6 +36,9 @@ COPY entrypoint.sh /entrypoint.sh
 RUN dos2unix /entrypoint.sh && chmod +x /entrypoint.sh
 
 RUN chmod 777 /entrypoint.sh
+
+RUN a2enmod headers
+RUN echo 'ServerName localhost' >> /etc/apache2/apache2.conf
 RUN a2enmod rewrite &&  service apache2 restart
 
 WORKDIR /var/www

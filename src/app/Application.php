@@ -13,6 +13,8 @@ use Phalcon\Mvc\Dispatcher;
 
 class Application extends \Phalcon\Mvc\Application
 {
+    private static $app;
+
     public function __construct()
     {
 //        set_error_handler( array($this, 'errorHandler'), E_ALL);
@@ -22,6 +24,10 @@ class Application extends \Phalcon\Mvc\Application
         $this->useImplicitView(false);
         $this->di = new \Phalcon\Di\FactoryDefault();
         Di::setDefault($this->di);
+        $eventsManager = $this->di->getShared('eventsManager');
+        $eventsManager->attach('application:beforeHandleRequest', new \TusPhp\Middleware\Cors());
+
+        $this->setEventsManager($eventsManager);
 
         $this->di->setShared('router', Router::class);
         $this->di->setShared('filter', function () {
@@ -45,9 +51,21 @@ class Application extends \Phalcon\Mvc\Application
         $dispatcher->setEventsManager($eventsManager);
         $this->di->setShared('dispatcher', $dispatcher);
 
+        $this->di->setShared('view', function () {
+            $view = new \Phalcon\Mvc\View();
+            $view->setViewsDir('../app/views/');
+            return $view;
+        });
+
         parent::__construct($this->di);
 
+        self::$app = $this;
 
+    }
+
+    public static function getApp(): self
+    {
+        return self::$app;
     }
 
     public function exceptionHandler(\Throwable $exception)
@@ -81,11 +99,11 @@ class Application extends \Phalcon\Mvc\Application
         $this->response->send();
     }
 
-    public function errorHandler(int $errno , string $errstr, string $errfile, int $errline , $errcontext = [])
+    public function errorHandler(int $errno, string $errstr, string $errfile, int $errline, $errcontext = [])
     {
         $errfile = $errfile ?? "unknown file";
-        $errstr  = $errstr ?? "shutdown";
-        $errno   = $errno ?? E_CORE_ERROR;
+        $errstr = $errstr ?? "shutdown";
+        $errno = $errno ?? E_CORE_ERROR;
         $errline = $errline ?? 0;
         $errcontext = $errcontext ?? [];
 
@@ -95,9 +113,11 @@ class Application extends \Phalcon\Mvc\Application
             case E_NOTICE :
             case E_WARNING :
             case E_DEPRECATED :
-            case E_STRICT : $type = 'error';
+            case E_STRICT :
+                $type = 'error';
                 break;
-            default : $type = 'info';
+            default :
+                $type = 'info';
         }
 
         Logger::{$type}($errstr, [
