@@ -15,6 +15,13 @@ vagy
 STORAGE_TYPE='s3'
 ```
 
+```
+/file?ids=49,51,50
+/blob/d7/nl/piupilwnfg70y5em.xlsx
+```
+
+```
+
 # Project setup / inditas
 
 ```
