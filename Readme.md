@@ -1,3 +1,20 @@
+# Használat
+
+```
+teszt kliens:
+http://localhost:8200/client.php
+
+client.php 24.sor:
+chunkSize: 1024,
+``` 
+
+```
+.envben:
+STORAGE_TYPE='local'
+vagy
+STORAGE_TYPE='s3'
+```
+
 # Project setup / inditas
 
 ```

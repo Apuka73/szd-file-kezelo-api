@@ -11,6 +11,8 @@ use Phalcon\Http\Request\FileInterface;
 use Phalcon\Mvc\Controller;
 use Phalcon\Mvc\Dispatcher;
 use Predis\Command\Redis\DISCARD;
+use Service\Logger;
+use TusPhp\Cache\ApcuStore;
 use TusPhp\Tus\Server;
 use Phalcon\Encryption\Security\Random;
 
@@ -37,8 +39,6 @@ class ApiController extends Controller
 //                header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
 //            }
 //
-
-
 //        }
     }
 
@@ -50,37 +50,49 @@ class ApiController extends Controller
         }
     }
 
-    public function uploadAction()
+    public function uploadAction($keyId = null)
     {
 
-//        $files = $this->request->getUploadedFiles();
-//        $resp = [];
-//        foreach ($files as $file) {
-//            $file->moveTo('/tmp/' . $file->getName());
-//            $resp[] = $this->moveToStorage($file);
-//        }
-//        return $resp;
         try {
 
             $server = new Server('file');
             $server->setCache(
-                new \TusPhp\Cache\FileStore('/tmp')
+                new \TusPhp\Cache\FileStore(sys_get_temp_dir() . '/')
             );
+            $server->setUploadDir(sys_get_temp_dir() . '/');
             $server->event()->addListener('tus-server.upload.created', function (\TusPhp\Events\TusEvent $event) {
-                // Upload esemény logolása vagy kezelése
-                error_log('Feltöltés létrehozva: ' . $event->getFile()->getFilePath());
+//                Logger::info('Feltöltés létrehozva: ' . $event->getFile()->getFilePath());
+            });
+            $server->event()->addListener('tus-server.upload.progress', function (\TusPhp\Events\TusEvent $event) {
+//                Logger::info('Feltöltés folyamatban: ', $event->getFile()->getFilePath());
             });
 
-            $server->serve();
+            $server->event()->addListener('tus-server.upload.complete', function (\TusPhp\Events\TusEvent $event) {
+                $uploadedFile = $event->getFile();
+                $filePath = $uploadedFile->getFilePath();
+                $fileSize = $uploadedFile->getFileSize();
+
+                $file = new \Phalcon\Http\Request\File([
+                    'name' => basename($filePath),
+                    'type' => mime_content_type($filePath),
+                    'tmp_name' => $filePath,
+                    'error' => 0,
+                    'size' => $fileSize,
+                ]);
+                $resp = $this->moveToStorage($file);
+                $this->response->setJsonContent($resp)->send();
+                exit(0);
+            });
+            $response = $server->serve();
+            $response->send();
+            exit(0);
+
         } catch (\Exception $e) {
+            Logger::error('TUS error', $e);
             return [
                 'message' => $e->getMessage()
             ];
         }
-
-        return [
-            'message' => 'upload ok'
-        ];
     }
 
     private function moveToStorage(FileInterface $file): array
@@ -97,13 +109,6 @@ class ApiController extends Controller
         } while (File::findFirstByPath($storePath) !== null);
         /** @var Filesystem $bucket */
         try {
-//            $bucket = $this->storage->getBucket();
-//            $bucket->write();
-//            $fileStream = fopen($source, 'r');
-//            $bucket->writeStream('/' . $storePath, $fileStream);
-//            if (is_resource($fileStream)) {
-//                fclose($fileStream);
-//            }
             $bucket = $this->storage->getBucket();
             $fileContent = file_get_contents($source);
             $bucket->write('/' . $storePath, $fileContent);

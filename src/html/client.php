@@ -21,6 +21,11 @@
         var upload = new tus.Upload(file, {
             endpoint: 'http://localhost:8200/files',
             retryDelays: [0, 1000, 3000, 5000],
+            chunkSize: 1024,
+            metadata: {
+                filename: file.name,
+                filetype: file.type,
+            },
             onError: function (error) {
                 console.log("Failed because: " + error)
             },
@@ -33,8 +38,11 @@
             }
         })
 
-        upload.start()
+        upload.start();
+        // localStorage.clear();
     }
+
+    // localStorage.clear();
 </script>
 </body>
 </html>

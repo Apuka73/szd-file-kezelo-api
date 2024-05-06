@@ -14,7 +14,7 @@ class CorsMiddleware extends Injectable
 
         // Beállítja a szükséges CORS fejléceket
         $response->setHeader('Access-Control-Allow-Origin', '*');
-        $response->setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+        $response->setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, HEAD, DELETE');
         $response->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
 
         // Ha az HTTP metódus OPTIONS (pre-flight kérés), ne folytassa a kérés feldolgozását

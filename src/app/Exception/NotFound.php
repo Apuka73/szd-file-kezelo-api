@@ -6,6 +6,7 @@ class NotFound extends Http
 {
     public function __construct($message = '', $statusCode = 400, $context = [])
     {
-        parent::__construct('Not found', 404, $context);
+        $request = \Application::getApp()->request;
+        parent::__construct('Not found [' . $request->getMethod() . ' - ' . $request->getURI() . ' - ]', 404, $context);
     }
 }
